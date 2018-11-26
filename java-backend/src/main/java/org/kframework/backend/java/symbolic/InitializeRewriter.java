@@ -71,6 +71,7 @@ public class InitializeRewriter implements Function<Module, Rewriter> {
     private static final int NEGATIVE_VALUE = -1;
     private final KompileOptions kompileOptions;
     private final Profiler2 profiler;
+    private final JavaExecutionOptions javaExecutionOptions;
 
     @Inject
     public InitializeRewriter(
@@ -80,6 +81,7 @@ public class InitializeRewriter implements Function<Module, Rewriter> {
             SMTOptions smtOptions,
             KRunOptions krunOptions,
             KompileOptions kompileOptions,
+            JavaExecutionOptions javaExecutionOptions,
             FileUtil files,
             InitializeDefinition initializeDefinition,
             Stopwatch sw,
@@ -92,8 +94,9 @@ public class InitializeRewriter implements Function<Module, Rewriter> {
         this.smtOptions = smtOptions;
         this.hookProvider = HookProvider.get(kem);
         this.transitions = kompileOptions.transition;
-        this.kompileOptions = kompileOptions;
         this.krunOptions = krunOptions;
+        this.kompileOptions = kompileOptions;
+        this.javaExecutionOptions = javaExecutionOptions;
         this.files = files;
         this.initializeDefinition = initializeDefinition;
         this.profiler = profiler;
