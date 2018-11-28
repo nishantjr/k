@@ -6,6 +6,7 @@ import com.google.inject.Inject;
 import org.kframework.backend.java.kil.KItem.KItemOperations;
 import org.kframework.backend.java.symbolic.BuiltinFunction;
 import org.kframework.backend.java.symbolic.Equality.EqualityOperations;
+import org.kframework.backend.java.symbolic.JavaExecutionOptions;
 import org.kframework.backend.java.symbolic.SMTOperations;
 import org.kframework.backend.java.symbolic.Stage;
 import org.kframework.backend.java.util.FormulaSimplificationCache;
@@ -30,6 +31,7 @@ public class GlobalContext implements Serializable {
     public final transient SMTOperations constraintOps;
     public final transient KItemOperations kItemOps;
     public final transient KRunOptions krunOptions;
+    public final transient JavaExecutionOptions javaExecutionOptions;
     public final transient KExceptionManager kem;
     private final transient Map<String, MethodHandle> hookProvider;
     public final transient FileUtil files;
@@ -44,6 +46,7 @@ public class GlobalContext implements Serializable {
             boolean deterministicFunctions,
             GlobalOptions globalOptions,
             KRunOptions krunOptions,
+            JavaExecutionOptions javaExecutionOptions,
             KExceptionManager kem,
             SMTOptions smtOptions,
             Map<String, MethodHandle> hookProvider,
@@ -53,6 +56,7 @@ public class GlobalContext implements Serializable {
         this.fs = fs;
         this.globalOptions = globalOptions;
         this.krunOptions = krunOptions;
+        this.javaExecutionOptions = javaExecutionOptions;
         this.kem = kem;
         this.hookProvider = hookProvider;
         this.files = files;
@@ -69,12 +73,13 @@ public class GlobalContext implements Serializable {
             SMTOptions smtOptions,
             KExceptionManager kem,
             KRunOptions krunOptions,
+            JavaExecutionOptions javaExecutionOptions,
             FileSystem fs,
             FileUtil files,
             Map<String, MethodHandle> hookProvider,
             Stage stage,
             Profiler2 profiler) {
-        this(fs, false, globalOptions, krunOptions, kem, smtOptions, hookProvider, files, stage, profiler);
+        this(fs, false, globalOptions, krunOptions, javaExecutionOptions, kem, smtOptions, hookProvider, files, stage, profiler);
     }
 
     private transient BuiltinFunction builtinFunction;
