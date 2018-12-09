@@ -6,7 +6,9 @@ import org.kframework.backend.java.kil.Rule;
 import org.kframework.utils.file.FileUtil;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,12 +44,17 @@ public class RuleSourceUtil {
     }
 
     public static void printRuleAndSource(Rule rule) {
+        appendRuleAndSource(rule, System.err);
+    }
+
+    public static void appendRuleAndSource(Rule rule, Appendable out) {
         File source = rule.source().isPresent() ? new File(rule.getSource().source()) : null;
+        Formatter formatter = new Formatter(out);
         if (sourceShortEnough(rule)) {
-            System.err.println(loadSource(rule));
+            formatter.format("%s\n", loadSource(rule));
         } else {
-            System.err.println("rule too long or location unknown...");
+            formatter.format("rule too long or location unknown...\n");
         }
-        System.err.format("\tSource: %s %s\n\n", source, rule.getLocation());
+        formatter.format("\tSource: %s %s\n\n", source, rule.getLocation());
     }
 }
