@@ -198,7 +198,7 @@ public class    KILtoSMTLib extends CopyOnWriteTransformer {
             Set<Variable> existentialQuantVars) {
         KILtoSMTLib leftTransformer = new KILtoSMTLib(true, leftHandSide.globalContext());
         // termAbstractionMap is shared between transformers
-        KILtoSMTLib rightTransformer = new KILtoSMTLib(true,
+        KILtoSMTLib rightTransformer = new KILtoSMTLib(false,
                 rightHandSide.globalContext().getDefinition(),
                 rightHandSide.globalContext().krunOptions,
                 rightHandSide.globalContext(), leftTransformer.termAbstractionMap);
@@ -240,23 +240,28 @@ public class    KILtoSMTLib extends CopyOnWriteTransformer {
      * Flag indicating whether KItem terms and equalities that cannot be translated can be abstracted away into
      * fresh variables. If the flag is false and untranslatable term is encountered, an exception will be thrown instead.
      */
-    private final boolean skipUnsupportedEqualities;
+    private final boolean allowNewVars;
     private final HashSet<Variable> variables;
     private final HashMap<Term, Variable> termAbstractionMap;
     private final HashMap<UninterpretedToken, Integer> tokenEncoding;
 
-    private KILtoSMTLib(boolean skipUnsupportedEqualities, GlobalContext global) {
-        this(skipUnsupportedEqualities, global.getDefinition(), global.krunOptions, global, new HashMap<>());
+    private KILtoSMTLib(boolean allowNewVars, GlobalContext global) {
+        this(allowNewVars, global.getDefinition(), global.krunOptions, global, new HashMap<>());
     }
 
-    private KILtoSMTLib(boolean skipUnsupportedEqualities, Definition definition, KRunOptions krunOptions,
+    private KILtoSMTLib(boolean allowNewVars, Definition definition, KRunOptions krunOptions,
                         GlobalContext global) {
-        this(skipUnsupportedEqualities, definition, krunOptions, global, new HashMap<>());
+        this(allowNewVars, definition, krunOptions, global, new HashMap<>());
     }
 
-    private KILtoSMTLib(boolean skipUnsupportedEqualities, Definition definition, KRunOptions krunOptions,
+    /**
+     * @param allowNewVars If true, untranslatable terms not present in {@code termAbstractionMap} will be
+     *                     substituted with fresh vars. If false, only terms already present in the map will be
+     *                     substituted. Also, if true, substitutions will be translated into Z3 as equalities.
+     */
+    private KILtoSMTLib(boolean allowNewVars, Definition definition, KRunOptions krunOptions,
                         GlobalContext global, HashMap<Term, Variable> termAbstractionMap) {
-        this.skipUnsupportedEqualities = skipUnsupportedEqualities;
+        this.allowNewVars = allowNewVars;
         this.definition = definition;
         this.krunOptions = krunOptions;
         this.global = global;
@@ -421,7 +426,7 @@ public class    KILtoSMTLib extends CopyOnWriteTransformer {
     public SMTLibTerm transform(ConjunctiveFormula constraint) {
         assert constraint.disjunctions().isEmpty() : "disjunctions are not supported by SMT translation";
         Set<Equality> equalities = Sets.newHashSet(constraint.equalities());
-        if (!skipUnsupportedEqualities) {
+        if (!allowNewVars) {
             constraint.substitution().entrySet().stream()
                     .map(entry -> new Equality(entry.getKey(), entry.getValue(), constraint.globalContext()))
                     .forEach(equalities::add);
@@ -446,7 +451,7 @@ public class    KILtoSMTLib extends CopyOnWriteTransformer {
                 isEmptyAdd = false;
             } catch (UnsupportedOperationException e) {
                 // TODO(AndreiS): fix this translation and the exceptions
-                if (skipUnsupportedEqualities){
+                if (allowNewVars){
                     /* it is sound to skip the equalities that cannot be translated */
                     e.printStackTrace();
                 } else {
@@ -470,19 +475,19 @@ public class    KILtoSMTLib extends CopyOnWriteTransformer {
     }
 
     private CharSequence abstractThroughAnonVariable(Term term, RuntimeException e) {
-        if (skipUnsupportedEqualities) {
-            Variable variable = termAbstractionMap.get(term);
-            if (variable == null) {
+        Variable variable = termAbstractionMap.get(term);
+        if (variable == null) {
+            if (allowNewVars) {
                 variable = Variable.getAnonVariable(term.sort());
                 termAbstractionMap.put(term, variable);
                 if (global.globalOptions.debugZ3Queries) {
                     System.err.format("\t%s ::= %s\n", variable.longName(), term);
                 }
+            } else {
+                throw e;
             }
-            return variable.longName();
-        } else {
-            throw e;
         }
+        return variable.longName();
     }
 
     @Override
