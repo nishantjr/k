@@ -239,6 +239,16 @@ public class InitializeRewriter implements Function<Module, Rewriter> {
                         ConstrainedTerm lhs = r.createLhsPattern(termContext);
                         ConstrainedTerm rhs = r.createRhsPattern();
                         termContext.setInitialVariables(lhs.variableSet());
+
+                        //Fully evaluate the constraint, then expand patterns in the context of this constraint.
+                        //todo reuse constraint already computed during ProcessProofRules.invoke().
+                        //todo same for rhs
+                        ConjunctiveFormula constraint = processProofRules.getEvaluatedConstraint(r);
+                        termContext.setTopConstraint(constraint);
+                        lhs = new ConstrainedTerm(lhs.term(), constraint, termContext);
+                        lhs = lhs.expandPatterns(true);
+                        termContext.setTopConstraint(null);
+
                         if (rewritingContext.globalOptions.cacheFunctionsOptimized) {
                             JavaSymbolicObject.clearCache();
                         }
@@ -355,17 +365,7 @@ public class InitializeRewriter implements Function<Module, Rewriter> {
                     RuleSourceUtil.printRuleAndSource(rule);
                     System.err.println("==================================");
                 }
-                termContext.setTopConstraint(null);
-                //We need this ConsTerm only to evaluate the constraint. That's why we use an empty first argument.
-                ConstrainedTerm constraintHolder = new ConstrainedTerm(
-                        ConjunctiveFormula.of(termContext.global()),
-                        rule.getRequires(),
-                        termContext).expandPatterns(true);
-
-                ConjunctiveFormula constraint = constraintHolder.constraint();
-                termContext.setTopConstraint(constraint);
-                //simplify the constraint in its own context, to force full evaluation of terms.
-                constraint = constraint.simplify(termContext);
+                ConjunctiveFormula constraint = getEvaluatedConstraint(rule);
 
                 return new org.kframework.backend.java.kil.Rule(
                         rule.label(),
@@ -378,6 +378,21 @@ public class InitializeRewriter implements Function<Module, Rewriter> {
                         rule.lookups(),
                         rule.att(),
                         termContext.global());
+            }
+
+            public ConjunctiveFormula getEvaluatedConstraint(org.kframework.backend.java.kil.Rule rule) {
+                termContext.setTopConstraint(null);
+                //We need this ConsTerm only to evaluate the constraint. That's why we use an empty first argument.
+                ConstrainedTerm constraintHolder = new ConstrainedTerm(
+                        ConjunctiveFormula.of(termContext.global()),
+                        rule.getRequires(),
+                        termContext).expandPatterns(true);
+
+                ConjunctiveFormula constraint = constraintHolder.constraint();
+                termContext.setTopConstraint(constraint);
+                //simplify the constraint in its own context, to force full evaluation of terms.
+                constraint = constraint.simplify(termContext);
+                return constraint;
             }
 
             private Term evaluate(Term term, ConjunctiveFormula constraint, TermContext context) {

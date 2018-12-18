@@ -613,7 +613,6 @@ public class SymbolicRewriter {
         List<ConstrainedTerm> queue = new ArrayList<>();
         List<ConstrainedTerm> nextQueue = new ArrayList<>();
 
-        initialTerm = initialTerm.expandPatterns(true);
         KItem initialKCell = getCell((KItem) initialTerm.term(), "<k>");
         KItem targetKCell = getCell((KItem) targetTerm.term(), "<k>");
         boolean initKEqualsTargetK = initialKCell == null || initialKCell.equals(targetKCell);
